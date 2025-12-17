@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 3 - Train Stations Database</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css">
+</head>
+<body>
+    <div id="app">
+        <!-- trains schedule -->
+        <div id="train-schedule" class="d-flex flex-column align-items-center justify-content-center w-200">
+            <h3 class="mb-4">Trains Schedule</h3>
+
+            <form @submit.prevent="searchTrains" class="d-flex gap-2 justify-content-center mb-4">
+                <input 
+                    v-model="source" 
+                    class="form-control w-25" 
+                    type="text" 
+                    placeholder="Source Station" 
+                    list="departureStations">
+                <datalist id="departureStations">
+                    <option v-for="station in stations" :key="station" :value="station"></option>
+                </datalist>
+
+                <span class="mx-2">→</span>
+
+                <input 
+                    v-model="destination" 
+                    class="form-control w-25" 
+                    type="text" 
+                    placeholder="Destination Station" 
+                    list="destinationStations">
+                <datalist id="destinationStations">
+                    <option v-for="station in stations" :key="station" :value="station"></option>
+                </datalist>
+
+                <button type="submit" class="btn btn-primary">Search Trains</button>
+            </form>
+
+            <div class="mt-4 d-flex align-items-center justify-content-center flex-column w-100">
+                <div id="train-results" class="w-75">
+                    <div v-if="results.length === 0 && !selectedTrain" class="text-center text-muted">
+                        <p>No trains found.</p>
+                    </div>
+                    <div v-else-if="selectedTrain" class="card mb-4">
+                        <div class="card-body">
+                            <button @click="selectedTrain = null" class="btn btn-secondary btn-sm mb-3">Back to Results</button>
+                            <h5 class="card-title">Train {{ selectedTrain.train_no }} - {{ selectedTrain.train_name }}</h5>
+                            <p class="card-text"><strong>Source:</strong> {{ selectedTrain.source_station_code }}</p>
+                            <p class="card-text"><strong>Destination:</strong> {{ selectedTrain.destination_station_code }}</p>
+                            <h6 class="mt-4">Full Schedule:</h6>
+                            <div v-if="selectedTrain.schedule && selectedTrain.schedule.length > 0">
+                                <div v-for="(station, index) in selectedTrain.schedule" :key="index" class="mb-2">
+                                    <p>{{ station.station_code }} - {{ station.arrival_time }} / {{ station.departure_time }}</p>
+                                </div>
+                            </div>
+                            <div v-else class="text-muted">No schedule available.</div>
+                        </div>
+                    </div>
+                    <div v-else>
+                        <p>Found {{ results.length }} train(s):</p>
+                        <table class="table table-striped table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Train Number</th>
+                                    <th>Train Name</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="train in results" :key="train.id" :id="train.id">
+                                    <td>{{ train.train_no }}</td>
+                                    <td>{{ train.train_name }}</td>
+                                    <td>
+                                        <button type="button" class="btn btn-primary" @click="displayDetails(train.train_no)">Show Schedule</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const app = Vue.createApp({
+            data() {
+                return {
+                    source: 'slo',
+                    destination: 'rjy',
+                    stations: ['slo', 'lj', 'mb', 'rjy', 'kp', 'ce'],
+                    results: [],
+                    selectedTrain: null
+                }
+            },
+            methods: {
+                searchTrains() {
+                    const apiUrl = `index.php?source=${this.source}&destination=${this.destination}`;
+                    fetch(apiUrl)
+                        .then(response => response.json())
+                        .then(data => {
+                            this.results = data;
+                        })
+                        .catch(error => {
+                            console.error('Error fetching train data:', error);
+                        });
+                },
+                displayDetails: async function(trainId) {
+                    const train = await this.getTrainRowById(trainId);
+                    this.selectedTrain = train;
+                },
+                getTrainRowById: async function(trainId) {
+                    const response = await fetch(`get_train_by_id.php?train_id=${trainId}`);
+                    const data = await response.json();
+                    return data;
+                }
+            }
+        });
+        app.mount('#app');
+    </script>
+
+</body>
+</html>

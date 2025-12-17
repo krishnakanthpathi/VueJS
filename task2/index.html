@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Simple JSON Table</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <style>
+        body {
+            background: #f8f9fa;
+        }
+
+        table thead th {
+            background: #0d6efd;
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body class="py-4">
+    <div class="container" id="app">
+    </div>
+    </div>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <script>
+
+        const app = Vue.createApp({
+            template: `
+             <div class="d-flex justify-content-end mb-3">
+            <button id="addFieldBtn" type="button" @click="clearForm" class="btn btn-primary"  data-bs-toggle="modal" data-bs-target="#myModal">
+                Add Field
+            </button>
+        </div>
+        <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="myModalLabel">Registration Application</h5>
+                        <button type="button" id="closeBtn" class="btn-close"  @click="closeModal" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="registrationForm" class="d-flex flex-column">
+                            <label for="name">Name: </label>
+                            <input class="border border-primary p-1 m-2" type="text" @input="validateForm" v-model="name" name="name" id="username" required>
+                            <h6 class="text-danger" id="nameMessage" v-model="nameMessage">{{nameMessage}}</h6>
+                            
+                            <label for="email">Email: </label>
+                            <input class="border border-primary p-1 m-2" type="email" @input="validateForm" v-model="email" id="email" name="email" required>
+                            <h6 class="text-danger" id="emailMessage" v-model="emailMessage">{{emailMessage}}</h6>
+                            
+                            <label for="dob">Date Of Birth: </label>
+                            <input class="border border-primary p-1 m-2" type="date" @input="validateForm" v-model="dob" id="dob" name="dob" required>
+                            <h6 class="text-danger" id="dobMessage" v-model="dobMessage">{{dobMessage}}</h6>
+                            
+                            <label for="mobile">Mobile: </label>
+                            <input class="border border-primary p-1 m-2" type="tel" @input="validateForm" v-model="mobile" id="mobile" name="mobile" required>
+                            <h6 class="text-danger" id="mobileMessage" v-model="mobileMessage">{{mobileMessage}}</h6>
+                            
+                            <label for="address">Address: </label>
+                            <input class="border border-primary p-1 m-2" type="text" v-model="address" id="address" name="address" required minlength="3">
+                            <h6 class="text-danger" id="addressMessage" v-model="addressMessage">{{addressMessage}}</h6>
+                            <div>
+                                <label for="gender">Male: </label>
+                                <input type="radio" v-model="Gender" id="male" name="gender" value="Male" checked class="p-1 m-2">
+                                <label for="gender">Female: </label>
+                                <input type="radio" v-model="Gender" id="female" name="gender" value="Female" class="p-1 m-2">
+                            </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary"  @click="closeModal" data-bs-dismiss="modal">Close</button>
+                        <input type="submit" @click="submitForm"  id="submitBtn" class="btn btn-primary" value="Submit"/>
+                    </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+            <div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-sm" id="dataTable">
+                        <thead>
+                            <tr>
+                            <th>Name</th>
+                            <th>email</th>
+                            <th>DOB</th>
+                            <th>Mobile</th>
+                            <th>address</th>
+                            <th>Gender</th>
+                                <th colspan="2">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(row, rowIndex) in data" :key="rowIndex">
+                                <td v-for="col in buildColumns(data)" :key="col">{{ row[col] }}</td>
+                                <td ><button @click="editRow(rowIndex)" class="btn btn-sm btn-primary">Edit</button></td>
+                                <td ><button @click="deleteRow(rowIndex)" class="btn btn-sm btn-danger">Delete</button></td>
+                                </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            `,
+            data() {
+                return {
+                    data: [
+                        { "Name": "Rahul Sharma", "email": "rahul.sharma@example.com", "DOB": "1990-05-14", "Mobile": "9876543210", "address": "Mumbai, Maharashtra", "Gender": "Male" },
+                        { "Name": "Priya Verma", "email": "priya.verma@example.com", "DOB": "1992-11-23", "Mobile": "9865321470", "address": "Delhi, India", "Gender": "Female" },
+                        { "Name": "Arjun Mehta", "email": "arjun.mehta@example.com", "DOB": "1988-02-09", "Mobile": "9988776655", "address": "Ahmedabad, Gujarat", "Gender": "Male" },
+                        { "Name": "Sneha Kulkarni", "email": "sneha.kulkarni@example.com", "DOB": "1995-06-28", "Mobile": "9123456780", "address": "Pune, Maharashtra", "Gender": "Female" },
+                        { "Name": "Vikram Singh", "email": "vikram.singh@example.com", "DOB": "1987-09-17", "Mobile": "9090909090", "address": "Jaipur, Rajasthan", "Gender": "Male" },
+                        { "Name": "Aisha Khan", "email": "aisha.khan@example.com", "DOB": "1993-12-05", "Mobile": "9812345678", "address": "Hyderabad, Telangana", "Gender": "Female" },
+                        { "Name": "Rohit Nair", "email": "rohit.nair@example.com", "DOB": "1991-03-11", "Mobile": "9876501234", "address": "Kochi, Kerala", "Gender": "Male" },
+                        { "Name": "Kavya Reddy", "email": "kavya.reddy@example.com", "DOB": "1996-08-20", "Mobile": "9845098450", "address": "Bengaluru, Karnataka", "Gender": "Female" },
+                        { "Name": "Suresh Pant", "email": "suresh.pant@example.com", "DOB": "1989-01-30", "Mobile": "9789054321", "address": "Dehradun, Uttarakhand", "Gender": "Male" },
+                        { "Name": "Nidhi Agarwal", "email": "nidhi.agarwal@example.com", "DOB": "1994-10-02", "Mobile": "9833332211", "address": "Kolkata, West Bengal", "Gender": "Female" }
+                    ],
+                    name: '',
+                    email: '',
+                    dob: '',
+                    mobile: '',
+                    address: '',
+                    nameMessage: '',
+                    emailMessage: '',
+                    dobMessage: '',
+                    mobileMessage: '',
+                    addressMessage: '',
+                    Gender: 'Male',
+                    editingIndex: -1,
+                    myModal: null,
+
+                }
+            },
+            methods: {
+                buildColumns(rows) {
+                    var set = {};
+                    var columns = [];
+
+                    for (var i = 0; i < rows.length; i++) {
+                        var row = rows[i];
+                        console.log(row);
+                        for (var key in row) {
+                            if (row.hasOwnProperty(key) && !set[key]) {
+                                set[key] = true;
+                                columns.push(key);
+                            }
+                        }
+                    }
+                    console.log(columns);
+                    return columns;
+                },
+                editRow(index) {
+                    this.editingIndex = index;
+                    const row = this.data[index];
+                    this.name = row.Name;
+                    this.email = row.email;
+                    this.dob = row.DOB;
+                    this.mobile = row.Mobile;
+                    this.address = row.address;
+                    this.Gender = row.Gender;
+                    if (!this.myModal) {
+                        this.myModal = new bootstrap.Modal(document.getElementById('myModal'));
+                    }
+                    this.myModal.show();
+                },
+                closeModal() {
+                    if (this.myModal) {
+                        this.myModal.hide();
+                    }
+                },
+                deleteRow(index) {
+                    this.data.splice(index, 1);
+                },
+                validateForm() {
+                    const namePattern = /^[a-zA-Z\s]+$/;
+                    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    const mobilePattern = /^\d{10}$/;
+
+                    this.nameMessage = '';
+                    this.emailMessage = '';
+                    this.dobMessage = '';
+                    this.mobileMessage = '';
+                    this.addressMessage = '';
+
+                    if (this.name.trim().length && !namePattern.test(this.name)) {
+                        this.nameMessage = 'Name should contain only letters and spaces.';
+                    }
+
+                    else if (this.email.trim().length && !emailPattern.test(this.email)) {
+                        this.emailMessage = 'Please enter a valid email address.';
+                    }
+
+                    else if (this.dob.trim().length && !this.dob) {
+                        this.dobMessage = 'Date of Birth is required.';
+                    }
+
+                    else if (this.mobile.trim().length && !mobilePattern.test(this.mobile)) {
+                        this.mobileMessage = 'Mobile number should be 10 digits.';
+                    }
+                    else if (this.address.trim().length && this.address.trim().length < 3) {
+                        this.addressMessage = 'Address should be at least 3 characters long.';
+                    }
+                },
+                submitForm(event) {
+                    event.preventDefault();
+                    console.log("Submitting form");
+                    this.validateForm();
+                    if (this.nameMessage || this.emailMessage || this.dobMessage || this.mobileMessage || this.addressMessage) {
+                        alert("Validation failed");
+                        // return;
+                    }
+                    else if (this.name.trim() === '' || this.email.trim() === '' || this.dob.trim() === '' || this.mobile.trim() === '' || this.address.trim() === '') {
+                        alert("Validation failed");
+                        // return;
+                    } else {
+                        const newEntry = {
+                            Name: this.name,
+                            email: this.email,
+                            DOB: this.dob,
+                            Mobile: this.mobile,
+                            address: this.address,
+                            Gender: this.Gender
+                        };
+                        if (this.editingIndex == -1) this.data.push(newEntry);
+                        else this.data[this.editingIndex] = newEntry;
+                        if (!this.myModal) {
+                            this.myModal = new bootstrap.Modal(document.getElementById('myModal'));
+                        }
+                        this.myModal.hide();
+                    }
+                    this.editingIndex = -1;
+
+                },
+                clearForm() {
+                    this.name = '';
+                    this.email = '';
+                    this.dob = '';
+                    this.mobile = '';
+                    this.address = '';
+                    this.nameMessage = '';
+                    this.emailMessage = '';
+                    this.dobMessage = '';
+                    this.mobileMessage = '';
+                    this.addressMessage = '';
+                    this.editingIndex = -1;
+                },
+
+            },
+        });
+        app.mount('#app');
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous"></script>
+</body>
+
+</html>

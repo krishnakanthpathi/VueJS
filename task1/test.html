@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Where is My Train (Offline)</title>
+    <style>
+        :root { --primary: #e67e22; --secondary: #2c3e50; --light: #ecf0f1; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        h1 { text-align: center; color: var(--secondary); margin-bottom: 20px; }
+        
+        /* File Upload Section */
+        .upload-section { background: #e8f0fe; border: 2px dashed #4285f4; padding: 20px; text-align: center; border-radius: 6px; margin-bottom: 25px; }
+        .upload-section p { margin: 0 0 10px; color: #5f6368; }
+        
+        /* Search Section */
+        .search-box { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; min-width: 150px; }
+        button { padding: 12px 24px; background-color: var(--primary); color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #d35400; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        /* Status & Results */
+        #status { text-align: center; margin-bottom: 15px; font-weight: bold; color: var(--secondary); height: 20px; }
+        
+        .train-card { border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; background: #fff; overflow: hidden; transition: box-shadow 0.2s; }
+        .train-card:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        
+        .card-header { padding: 15px; background: #f9f9f9; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid transparent; }
+        .card-header:hover { background: #f0f0f0; }
+        .train-title { font-size: 1.1em; font-weight: bold; color: var(--secondary); }
+        .train-meta { font-size: 0.9em; color: #666; margin-top: 4px; }
+        .train-route { text-align: right; }
+        .time { color: var(--primary); font-weight: bold; }
+        
+        /* Intermediate Stations */
+        .station-list { display: none; list-style: none; padding: 0; margin: 0; border-top: 1px solid #eee; max-height: 400px; overflow-y: auto; }
+        .station-item { display: flex; justify-content: space-between; padding: 8px 15px; border-bottom: 1px solid #f1f1f1; font-size: 0.9em; }
+        .station-item:nth-child(even) { background: #fafafa; }
+        .station-code { color: #888; font-family: monospace; width: 50px; }
+        .station-name { flex: 1; font-weight: 500; }
+        .station-times { color: #555; }
+        
+        .expanded .station-list { display: block; }
+        .expanded .card-header { border-bottom-color: #ddd; background: #eef2f5; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🚆 Train Finder</h1>
+
+    <div class="upload-section">
+        <p>Step 1: Upload <b>Train_details_22122017.csv</b> to begin</p>
+        <input type="file" id="csvFile" accept=".csv" />
+    </div>
+
+    <div class="search-box">
+        <input type="text" id="src" placeholder="Source Code (e.g. PUNE)" disabled>
+        <input type="text" id="dst" placeholder="Dest Code (e.g. LNL)" disabled>
+        <button id="findBtn" onclick="findTrains()" disabled>Find Trains</button>
+    </div>
+
+    <div id="status">Waiting for file...</div>
+    <div id="results"></div>
+</div>
+
+<script>
+    let globalData = []; // To store parsed CSV rows
+    const statusEl = document.getElementById('status');
+    const resultsEl = document.getElementById('results');
+    
+    // --- CSV PARSING LOGIC ---
+    document.getElementById('csvFile').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        statusEl.textContent = "Parsing CSV file... Please wait.";
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            const text = e.target.result;
+            processCSV(text);
+        };
+
+        reader.readAsText(file);
+    });
+
+    function processCSV(csvText) {
+        // Simple CSV parser assuming standard comma separation and newlines
+        // Data Structure Map based on your file:
+        // 0: Train No, 1: Train Name, 2: SEQ, 3: Station Code, 4: Station Name, 
+        // 5: Arrival, 6: Departure, 7: Dist, 8: Src Code, 9: Src Name, 10: Dst Code, 11: Dst Name
+        
+        const lines = csvText.split('\n');
+        const data = [];
+        
+        // Skip header (i=1)
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (line) {
+                // Basic split. If your CSV has commas inside quotes, a regex parser is needed. 
+                // For this specific train dataset, usually simple split works.
+                const cols = line.split(',');
+                if (cols.length >= 10) {
+                    data.push({
+                        id: cols[0],             // Train No
+                        name: cols[1],           // Train Name
+                        seq: parseInt(cols[2]),  // SEQ (converted to number)
+                        stnCode: cols[3],        // Station Code
+                        stnName: cols[4],        // Station Name
+                        arr: cols[5],            // Arrival
+                        dep: cols[6]             // Departure
+                    });
+                }
+            }
+        }
+        
+        globalData = data;
+        statusEl.textContent = `Loaded ${data.length} records. Ready to search!`;
+        
+        // Enable inputs
+        document.getElementById('src').disabled = false;
+        document.getElementById('dst').disabled = false;
+        document.getElementById('findBtn').disabled = false;
+    }
+
+    // --- SEARCH LOGIC ---
+    function findTrains() {
+        const srcCode = document.getElementById('src').value.toUpperCase().trim();
+        const dstCode = document.getElementById('dst').value.toUpperCase().trim();
+        
+        if (!srcCode || !dstCode) {
+            alert("Please enter both Source and Destination station codes.");
+            return;
+        }
+
+        statusEl.textContent = `Searching trains from ${srcCode} to ${dstCode}...`;
+        resultsEl.innerHTML = '';
+
+        // 1. Identify trains visiting Source
+        // Map: TrainID -> SEQ at Source
+        const srcMap = new Map();
+        
+        // 2. Identify trains visiting Dest
+        // Map: TrainID -> SEQ at Dest
+        const dstMap = new Map();
+
+        // Single pass for filtering (Optimization)
+        for (let i = 0; i < globalData.length; i++) {
+            const row = globalData[i];
+            if (row.stnCode === srcCode) {
+                srcMap.set(row.id, row.seq);
+            } else if (row.stnCode === dstCode) {
+                dstMap.set(row.id, row.seq);
+            }
+        }
+
+        // 3. Intersect and Validate (Source SEQ < Dest SEQ)
+        const validTrains = []; // Stores train IDs
+        console.log(srcMap);
+        srcMap.forEach((srcSeq, trainId) => {
+            console.log(trainId, srcSeq);
+            if (dstMap.has(trainId)) {
+                const dstSeq = dstMap.get(trainId);
+                if (srcSeq < dstSeq) {
+                    validTrains.push({ 
+                        id: trainId, 
+                        srcSeq: srcSeq, 
+                        dstSeq: dstSeq 
+                    });
+                }
+            }
+        });
+
+        if (validTrains.length === 0) {
+            statusEl.textContent = "No direct trains found between these stations.";
+            return;
+        }
+
+        statusEl.textContent = `Found ${validTrains.length} trains.`;
+
+        // 4. Build Results
+        // We need to fetch details for these trains.
+        // To do this efficiently without scanning the whole array again, we can filter.
+        // Since we have the full array in memory, we iterate once more or filter.
+        
+        const trainIdsSet = new Set(validTrains.map(t => t.id));
+        
+        // Group rows by train ID only for valid trains
+        const trainRows = {}; // { "11008": [row, row, ...] }
+        
+        globalData.forEach(row => {
+            if (trainIdsSet.has(row.id)) {
+                if (!trainRows[row.id]) trainRows[row.id] = [];
+                trainRows[row.id].push(row);
+            }
+        });
+
+        // 5. Render
+        validTrains.forEach(vt => {
+            const rows = trainRows[vt.id].sort((a,b) => a.seq - b.seq);
+            
+            // Filter intermediate stations
+            const route = rows.filter(r => r.seq >= vt.srcSeq && r.seq <= vt.dstSeq);
+            
+            if (route.length > 0) {
+                const trainName = route[0].name;
+                const startTime = route[0].dep; // Source departure
+                const endTime = route[route.length - 1].arr; // Dest arrival
+                
+                createTrainCard(vt.id, trainName, startTime, endTime, route);
+            }
+        });
+    }
+
+    // --- DOM MANIPULATION ---
+    function createTrainCard(id, name, start, end, stations) {
+        const card = document.createElement('div');
+        card.className = 'train-card';
+        
+        // Header
+        const header = document.createElement('div');
+        header.className = 'card-header';
+        header.innerHTML = `
+            <div>
+                <div class="train-title">${name} (${id})</div>
+                <div class="train-meta">${stations.length} Stops (Click to expand)</div>
+            </div>
+            <div class="train-route">
+                <span class="time">${start}</span> ➔ <span class="time">${end}</span>
+            </div>
+        `;
+        
+        // List
+        const list = document.createElement('ul');
+        list.className = 'station-list';
+        
+        stations.forEach(st => {
+            const li = document.createElement('li');
+            li.className = 'station-item';
+            li.innerHTML = `
+                <div style="display:flex; align-items:center;">
+                    <span class="station-code">${st.stnCode}</span>
+                    <span class="station-name">${st.stnName}</span>
+                </div>
+                <div class="station-times">
+                   A: ${st.arr} / D: ${st.dep}
+                </div>
+            `;
+            list.appendChild(li);
+        });
+        
+        // Click Event
+        header.addEventListener('click', () => {
+            card.classList.toggle('expanded');
+        });
+        
+        card.appendChild(header);
+        card.appendChild(list);
+        resultsEl.appendChild(card);
+    }
+</script>
+
+</body>
+</html>
