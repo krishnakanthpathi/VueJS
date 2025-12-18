@@ -1,0 +1,44 @@
+
+
+  -projectName : Vue Recursive Editor
+  -version : 1.0.4
+  -isPublic : true
+  -settings : 
+    -theme : dark
+    -autoSave : true
+    -maxRetries : 5
+  -metadata : null
+  -contributors :     
+    Alice
+    Bob
+    Charlie
+  -logs : 
+    -lastEdited : 2024-06-15T10:20:30Z
+    -editCount : 42
+    -editHistory :       
+      
+        -editor : Alice
+        -timestamp : 2024-06-14T09:15:00Z
+      
+        -editor : Bob
+        -timestamp : 2024-06-13T14:22:10Z
+  -features :     
+    
+      -id : 1
+      -name : Live Edit
+      -status : active
+    
+      -id : 2
+      -name : Export PDF
+      -status : beta
+      -flags :         
+        experimental
+        paid-only
+
+  -simpleList :     
+    1
+    2
+    3
+    4
+    5
+  -emptyObject : 
